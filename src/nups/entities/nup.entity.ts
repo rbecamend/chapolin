@@ -14,10 +14,10 @@ export class Nup {
   nup: string;
 
   @Column({ nullable: false })
-  orgao_julgador: string;
+  orgaoJulgador: string;
 
   @Column({ default: false })
-  estado: boolean;
+  cadastrado: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

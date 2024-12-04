@@ -14,7 +14,7 @@ export class Auditoria {
   @Column()
   @OneToOne(() => Nup)
   @JoinColumn({ name: 'id' })
-  nup_id: Nup;
+  nup_id: number;
 
   @Column({ default: false })
   wasRegistered: boolean;
