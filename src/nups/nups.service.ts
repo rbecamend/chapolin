@@ -1,26 +1,46 @@
 import { Injectable } from '@nestjs/common';
-import { CreateNupDto } from './dto/create-nup.dto';
-import { UpdateNupDto } from './dto/update-nup.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Nup } from './entities/nup.entity';
 
 @Injectable()
 export class NupsService {
-  create(createNupDto: CreateNupDto) {
-    return 'This action adds a new nup';
+  constructor(
+    @InjectRepository(Nup)
+    private readonly nupRepository: Repository<Nup>,
+  ) {}
+
+  async create(nup: string): Promise<Nup> {
+    const newNup = this.nupRepository.create({ nup });
+    return this.nupRepository.save(newNup);
   }
 
-  findAll() {
-    return `This action returns all nups`;
+  async findAll(pagina: number, tamanho: number): Promise<Nup[]> {
+    return this.nupRepository.find({
+      skip: (pagina - 1) * tamanho,
+      take: tamanho,
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} nup`;
+  async findOne(id: number): Promise<Nup | null> {
+    return this.nupRepository.findOne({ where: { id } });
   }
 
-  update(id: number, updateNupDto: UpdateNupDto) {
-    return `This action updates a #${id} nup`;
+  async update(id: number, nup: string): Promise<Nup> {
+    await this.nupRepository.update(id, { nup });
+    return this.findOne(id);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} nup`;
+  async delete(id: number): Promise<void> {
+    await this.nupRepository.delete(id);
+  }
+
+  async markAsProcessed(ids: number[]): Promise<void> {
+    await this.nupRepository.update(ids, { cadastrado: true });
+  }
+
+  async createBatch(nups: string[]): Promise<Nup[]> {
+    const entities = nups.map((nup) => this.nupRepository.create({ nup }));
+    return this.nupRepository.save(entities);
   }
 }
