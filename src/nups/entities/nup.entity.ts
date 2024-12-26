@@ -3,11 +3,9 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
 } from 'typeorm';
 
-@Entity()
+@Entity('nups_tb')
 export class Nup {
   @PrimaryGeneratedColumn()
   id: number;
@@ -20,10 +18,4 @@ export class Nup {
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @DeleteDateColumn()
-  deletedAt: Date;
 }

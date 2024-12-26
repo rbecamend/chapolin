@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Query,
@@ -44,13 +43,13 @@ export class NupsController {
     return nup;
   }
 
-  @Patch(':id')
-  async update(@Param('id') id: number, @Body('nup') nup: string) {
-    if (!nup) {
-      throw new Error('O NUP é obrigatório para atualização.');
-    }
-    return await this.nupsService.update(id, nup);
-  }
+  // @Patch(':id')
+  // async update(@Param('id') id: number, @Body('nup') nup: string) {
+  //   if (!nup) {
+  //     throw new Error('O NUP é obrigatório para atualização.');
+  //   }
+  //   return await this.nupsService.update(id, nup);
+  // }
 
   @Delete(':id')
   async delete(@Param('id') id: number) {
@@ -76,7 +75,7 @@ export class NupsController {
     const response = await this.peDePanoService.enviarLote(payload);
 
     const successIds = response.result.sucesso.map((item) => item.nup);
-    await this.nupsService.markAsProcessed(successIds);
+    // await this.nupsService.markAsProcessed(successIds);
 
     return response.result;
   }
