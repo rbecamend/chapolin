@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm'; // Importando 'In'
 import { Nup } from './entities/nup.entity';
 
 @Injectable()
@@ -26,21 +26,22 @@ export class NupsService {
     return this.nupRepository.findOne({ where: { id } });
   }
 
-  // async update(id: number, nup: string): Promise<Nup> {
-  //   await this.nupRepository.update(id, { nup });
-  //   return this.findOne(id);
-  // }
-
   async delete(id: number): Promise<void> {
     await this.nupRepository.delete(id);
   }
 
-  // async markAsProcessed(ids: number[]): Promise<void> {
-  //   await this.nupRepository.update(ids, { cadastrado: true });
-  // }
-
   async createBatch(nups: string[]): Promise<Nup[]> {
     const entities = nups.map((nup) => this.nupRepository.create({ nup }));
     return this.nupRepository.save(entities);
+  }
+
+  async markAsProcessed(nups: string[]): Promise<void> {
+    // Atualizando o campo "cadastrado" dos NUPs no banco de dados
+    await this.nupRepository.update(
+      { nup: In(nups) }, // Filtro para os NUPs
+      { cadastrado: true }, // Definindo "cadastrado" como true
+    );
+
+    console.log('NUPs marcados como processados:', nups);
   }
 }

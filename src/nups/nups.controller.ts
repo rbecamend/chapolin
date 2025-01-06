@@ -6,6 +6,8 @@ import {
   Param,
   Delete,
   Query,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { NupsService } from './nups.service';
 import { PeDePanoService } from 'src/services/pe-de-pano.service';
@@ -20,7 +22,7 @@ export class NupsController {
   @Post()
   async create(@Body('nup') nup: string) {
     if (!nup) {
-      throw new Error('O NUP é obrigatório.');
+      throw new HttpException('O NUP é obrigatório.', HttpStatus.BAD_REQUEST);
     }
     return await this.nupsService.create(nup);
   }
@@ -38,22 +40,18 @@ export class NupsController {
   async findOne(@Param('id') id: number) {
     const nup = await this.nupsService.findOne(id);
     if (!nup) {
-      throw new Error(`NUP com id ${id} não encontrado.`);
+      throw new HttpException(
+        `NUP com id ${id} não encontrado.`,
+        HttpStatus.NOT_FOUND,
+      );
     }
     return nup;
   }
 
-  // @Patch(':id')
-  // async update(@Param('id') id: number, @Body('nup') nup: string) {
-  //   if (!nup) {
-  //     throw new Error('O NUP é obrigatório para atualização.');
-  //   }
-  //   return await this.nupsService.update(id, nup);
-  // }
-
   @Delete(':id')
   async delete(@Param('id') id: number) {
-    return await this.nupsService.delete(id);
+    await this.nupsService.delete(id);
+    return { mensagem: `NUP com id ${id} deletado com sucesso.` };
   }
 
   @Post('enviar-lote')
@@ -72,16 +70,64 @@ export class NupsController {
       listaNups: body.listaNups,
     };
 
-    const response = await this.peDePanoService.enviarLote(payload);
+    console.log(
+      'Enviando dados para a API Pé-de-Pano:',
+      JSON.stringify(payload, null, 2),
+    );
 
-    const successIds = response.result.sucesso.map((item) => item.nup);
-    // await this.nupsService.markAsProcessed(successIds);
+    try {
+      const response = await this.peDePanoService.enviarLote(payload);
 
-    return response.result;
+      console.log(
+        'Resposta recebida da API Pé-de-Pano:',
+        JSON.stringify(response, null, 2),
+      );
+
+      if (Array.isArray(response?.data)) {
+        const erros = response.data.filter((msg: string) =>
+          msg.includes('não encontrado ou inválido'),
+        );
+        const sucesso = response.data.filter(
+          (msg: string) => !erros.includes(msg),
+        );
+
+        // Marcar NUPs processados (se aplicável)
+        if (sucesso.length > 0) {
+          const nupsProcessados = sucesso.map(
+            (msg: string) => msg.split(' ')[1],
+          );
+          await this.nupsService.markAsProcessed(nupsProcessados);
+          console.log('NUPs marcados como processados:', nupsProcessados);
+        }
+
+        return {
+          mensagem: 'Processamento concluído.',
+          sucesso: sucesso.length,
+          erros,
+        };
+      }
+
+      throw new HttpException(
+        'A resposta da API Pé-de-Pano não está no formato esperado.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } catch (error) {
+      console.error('Erro ao processar lote:', error.message);
+      throw new HttpException(
+        `Erro ao processar lote: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Post('import')
   async importBatch(@Body('nups') nups: string[]) {
+    if (!nups || !Array.isArray(nups) || nups.length === 0) {
+      throw new HttpException(
+        'A lista de NUPs é obrigatória e não pode estar vazia.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     return await this.nupsService.createBatch(nups);
   }
 }
