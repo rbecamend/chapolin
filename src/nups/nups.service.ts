@@ -36,12 +36,27 @@ export class NupsService {
   }
 
   async markAsProcessed(nups: string[]): Promise<void> {
-    // Atualizando o campo "cadastrado" dos NUPs no banco de dados
-    await this.nupRepository.update(
-      { nup: In(nups) }, // Filtro para os NUPs
-      { cadastrado: true }, // Definindo "cadastrado" como true
+    if (!nups.length) return;
+
+    const nupsJaProcessados = await this.nupRepository.find({
+      where: { nup: In(nups), cadastrado: true },
+      select: ['nup'],
+    });
+
+    const nupsPendentes = nups.filter(
+      (nup) =>
+        !nupsJaProcessados.some((jaProcessado) => jaProcessado.nup === nup),
     );
 
-    console.log('NUPs marcados como processados:', nups);
+    if (nupsPendentes.length) {
+      await this.nupRepository.update(
+        { nup: In(nupsPendentes) },
+        { cadastrado: true },
+      );
+      console.log('NUPs atualizados como processados:', nupsPendentes);
+    } else {
+      console.log('Todos os NUPs já estavam processados:', nups);
+    }
   }
+
 }

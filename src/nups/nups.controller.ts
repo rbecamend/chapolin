@@ -85,13 +85,12 @@ export class NupsController {
 
       if (Array.isArray(response?.data)) {
         const erros = response.data.filter((msg: string) =>
-          msg.includes('não encontrado ou inválido'),
+          msg.includes('Não encontrado ou inválido'),
         );
         const sucesso = response.data.filter(
           (msg: string) => !erros.includes(msg),
         );
 
-        // Marcar NUPs processados (se aplicável)
         if (sucesso.length > 0) {
           const nupsProcessados = sucesso.map(
             (msg: string) => msg.split(' ')[1],
@@ -100,10 +99,19 @@ export class NupsController {
           console.log('NUPs marcados como processados:', nupsProcessados);
         }
 
+        if (erros.length > 0) {
+          const nupsJaAtarefados = erros.map((msg: string) => msg.split(' ')[1]);
+          await this.nupsService.markAsProcessed(nupsJaAtarefados);
+          console.log('NUPs já atarefados/processados:', nupsJaAtarefados);
+        }
+
         return {
           mensagem: 'Processamento concluído.',
           sucesso: sucesso.length,
-          erros,
+          erros: {
+            quantidade: erros.length,
+            detalhes: erros,
+          },
         };
       }
 
