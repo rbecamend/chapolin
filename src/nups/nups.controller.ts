@@ -83,28 +83,25 @@ export class NupsController {
         JSON.stringify(response, null, 2),
       );
 
-      if (Array.isArray(response?.data)) {
-        const erros = response.data.filter((msg: string) =>
-          msg.includes('não encontrado ou inválido'),
-        );
-        const sucesso = response.data.filter(
-          (msg: string) => !erros.includes(msg),
-        );
+      if (Array.isArray(response)) {
+        const erros: string[] = [];
+        const sucesso: string[] = [];
 
+        // Processar retorno individualmente
+        response.forEach((msg: string) => {
+          if (msg.includes('não encontrado ou inválido')) {
+            const nupErro = msg.split(' ')[1]; // Extraia o NUP
+            erros.push(nupErro);
+          } else {
+            const nupSucesso = msg.split(' ')[1]; // Extraia o NUP
+            sucesso.push(nupSucesso);
+          }
+        });
+
+        // Atualizar estados no banco
         if (sucesso.length > 0) {
-          const nupsProcessados = sucesso.map(
-            (msg: string) => msg.split(' ')[1],
-          );
-          await this.nupsService.markAsProcessed(nupsProcessados);
-          console.log('NUPs marcados como processados:', nupsProcessados);
-        }
-
-        if (erros.length > 0) {
-          const nupsJaAtarefados = erros.map(
-            (msg: string) => msg.split(' ')[1],
-          );
-          await this.nupsService.markAsProcessed(nupsJaAtarefados);
-          console.log('NUPs já atarefados/processados:', nupsJaAtarefados);
+          await this.nupsService.markAsProcessed(sucesso);
+          console.log('NUPs marcados como processados:', sucesso);
         }
 
         return {
@@ -122,23 +119,11 @@ export class NupsController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } catch (error) {
-      console.error('Erro ao processar lote:', error.message);
-
-      // Tratar erro de NUPs já processados
-      if (
-        error.message.includes('já processado') ||
-        error.message.includes('não encontrado')
-      ) {
-        const nupsJaAtarefados = body.listaNups;
-        await this.nupsService.markAsProcessed(nupsJaAtarefados);
-
-        return {
-          mensagem: 'Alguns ou todos os NUPs já estavam processados.',
-          sucesso: 0,
-          erros: nupsJaAtarefados.length,
-          nupsJaAtarefados,
-        };
-      }
+      console.error('Erro ao processar lote:', {
+        status: error.status,
+        message: error.message,
+        responseData: error.responseData,
+      });
 
       throw new HttpException(
         `Erro ao processar lote: ${error.message}`,
