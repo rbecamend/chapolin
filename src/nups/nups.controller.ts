@@ -85,7 +85,7 @@ export class NupsController {
 
       if (Array.isArray(response?.data)) {
         const erros = response.data.filter((msg: string) =>
-          msg.includes('Não encontrado ou inválido'),
+          msg.includes('não encontrado ou inválido'),
         );
         const sucesso = response.data.filter(
           (msg: string) => !erros.includes(msg),
@@ -100,7 +100,9 @@ export class NupsController {
         }
 
         if (erros.length > 0) {
-          const nupsJaAtarefados = erros.map((msg: string) => msg.split(' ')[1]);
+          const nupsJaAtarefados = erros.map(
+            (msg: string) => msg.split(' ')[1],
+          );
           await this.nupsService.markAsProcessed(nupsJaAtarefados);
           console.log('NUPs já atarefados/processados:', nupsJaAtarefados);
         }
@@ -121,6 +123,23 @@ export class NupsController {
       );
     } catch (error) {
       console.error('Erro ao processar lote:', error.message);
+
+      // Tratar erro de NUPs já processados
+      if (
+        error.message.includes('já processado') ||
+        error.message.includes('não encontrado')
+      ) {
+        const nupsJaAtarefados = body.listaNups;
+        await this.nupsService.markAsProcessed(nupsJaAtarefados);
+
+        return {
+          mensagem: 'Alguns ou todos os NUPs já estavam processados.',
+          sucesso: 0,
+          erros: nupsJaAtarefados.length,
+          nupsJaAtarefados,
+        };
+      }
+
       throw new HttpException(
         `Erro ao processar lote: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
