@@ -83,26 +83,17 @@ export class NupsController {
         JSON.stringify(response, null, 2),
       );
 
-      if (Array.isArray(response)) {
-        const erros: string[] = [];
-        const sucesso: string[] = [];
+      // Lidar com os arrays de sucesso e erros no retorno
+      const { sucesso, erros } = response;
 
-        // Processar retorno individualmente
-        response.forEach((msg: string) => {
-          if (msg.includes('não encontrado ou inválido')) {
-            const nupErro = msg.split(' ')[1]; // Extraia o NUP
-            erros.push(nupErro);
-          } else {
-            const nupSucesso = msg.split(' ')[1]; // Extraia o NUP
-            sucesso.push(nupSucesso);
-          }
-        });
-
-        // Atualizar estados no banco
+      if (Array.isArray(sucesso) && Array.isArray(erros)) {
+        // Atualizar estados no banco para NUPs com sucesso
         if (sucesso.length > 0) {
           await this.nupsService.markAsProcessed(sucesso);
           console.log('NUPs marcados como processados:', sucesso);
         }
+
+        console.log('NUPs que não foram processados com sucesso:', erros);
 
         return {
           mensagem: 'Processamento concluído.',

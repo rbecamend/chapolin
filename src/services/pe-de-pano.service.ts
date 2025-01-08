@@ -30,7 +30,6 @@ export class PeDePanoService {
       });
       return response.data;
     } catch (error) {
-      // Captura detalhes completos do erro
       const status = error.response?.status || 'sem status';
       const responseData = error.response?.data || 'sem dados';
       const message = error.message || 'Erro desconhecido';
@@ -41,7 +40,6 @@ export class PeDePanoService {
         responseData,
       });
 
-      // Lança o erro com informações detalhadas
       throw new Error(
         `Falha na integração com a API Pé-de-Pano: ${message}. Detalhes: ${JSON.stringify(
           responseData,
